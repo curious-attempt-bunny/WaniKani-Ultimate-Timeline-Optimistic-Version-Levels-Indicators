@@ -53,6 +53,7 @@ window.wktimeln = {};
 
     var srslvls = ['Apprentice 1','Apprentice 2','Apprentice 3','Apprentice 4','Guru 1','Guru 2','Master','Enlightened','Burned'];
     var srs_intervals = [4, 8, 23, 47, 167, 335, 719, 2879, 0];
+    var srs_numbers = [1,2,3,4,1,2];
 
     var css =
         '#graph-bar-info {'+
@@ -131,15 +132,15 @@ window.wktimeln = {};
         '#timeline .kan {fill:#f100a1;}'+
         '#timeline .voc {fill:#a100f1;}'+
         '#timeline .sum {fill:#294ddb;}'+
-        '#timeline .level1 {fill:#dd0093;}'+
-        '#timeline .level2 {fill:#dd0093;}'+
-        '#timeline .level3 {fill:#dd0093;}'+
-        '#timeline .level4 {fill:#dd0093;}'+
-        '#timeline .level5 {fill:#882d9e;}'+
-        '#timeline .level6 {fill:#882d9e;}'+
-        '#timeline .level7 {fill:#294ddb;}'+
-        '#timeline .level8 {fill:#0093dd;}'+
-        '#timeline .level9 {fill:#434343;}'+
+        '#timeline .level1 {fill:#ff11af;overflow:hidden;}'+
+        '#timeline .level2 {fill:#f700a4;overflow:hidden;}'+
+        '#timeline .level3 {fill:#dd0093;overflow:hidden;}'+
+        '#timeline .level4 {fill:#c40082;overflow:hidden;}'+
+        '#timeline .level5 {fill:#9933b2;overflow:hidden;}'+
+        '#timeline .level6 {fill:#882d9e;overflow:hidden;}'+
+        '#timeline .level7 {fill:#294ddb;overflow:hidden;}'+
+        '#timeline .level8 {fill:#0093dd;overflow:hidden;}'+
+        '#timeline .level9 {fill:#434343;overflow:hidden;}'+
         '#timeline .bars .cur {fill:#ffffff;opacity:0.6;}'+
         '#timeline .bars .bur {fill:#000000;opacity:0.4;}'+
         '#timeline .bars .clr {fill:#000000;opacity:0;cursor:pointer;}'+
@@ -988,7 +989,12 @@ window.wktimeln = {};
                     });
                     console.dir(srs_level_counts);
                     Object.keys(srs_level_counts).forEach(function(srs_level) {
-                        bars += '<rect class="level'+srs_level+'" x="'+x1+'" y="'+base+'" width="'+(x2-x1)+'" height="'+(srs_level_counts[srs_level])+'" />';
+                        bars += '<rect class="level'+(parseInt(srs_level)+1)+'" x="'+x1+'" y="'+base+'" width="'+(x2-x1)+'" height="'+(srs_level_counts[srs_level])+'">';
+                        var number = srs_numbers[srs_level];
+                        if (number) {
+                            //bars += '<span>'+number+'</span>';
+                        }
+                        bars += '</rect>';
                         base += srs_level_counts[srs_level];
                     });
 //                    bars += '<rect class="sum" x="'+x1+'" y="0" width="'+(x2-x1)+'" height="'+(rad+kan+voc)+'" />';
@@ -1115,7 +1121,10 @@ window.wktimeln = {};
                         if (slot.item_count > max_reviews)
                             max_reviews = slot.item_count;
                     }
-                    slot[type].push(item);
+                    var item_clone = JSON.parse(JSON.stringify(item));
+                    item_clone.user_specific.available_date = item_user_specific_available_date;
+                    item_clone.user_specific.srs_numeric = item_user_specific_srs_numeric;
+                    slot[type].push(item_clone);
                     if (mark_current && item.level == user_level)
                         slot.has_current = true;
                     if (item_user_specific_srs_numeric == 8) {
