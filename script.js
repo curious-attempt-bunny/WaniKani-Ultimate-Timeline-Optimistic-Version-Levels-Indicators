@@ -51,6 +51,9 @@ window.wktimeln = {};
         api_key, user_level = 1, user_data, timeline, status_div, calc_time, current_slot,
         detail_latched = false, next_review, last_review, last_unlock, last_fetch, first_draw = true;
 
+    var graph_unit_minimum = 15 * 60 * 1000;
+    var graph_unit = graph_unit_minimum; // 15 minutes by default
+
     var srslvls = ['Apprentice 1','Apprentice 2','Apprentice 3','Apprentice 4','Guru 1','Guru 2','Master','Enlightened','Burned'];
     var srs_intervals = [4, 8, 23, 47, 167, 335, 719, 2879, 0];
     var srs_numbers = [1,2,3,4,1,2];
@@ -576,8 +579,8 @@ window.wktimeln = {};
         graph_detail_items = slot_sum;
 
         // Print the date or date range).
-        var str = format_date(new Date(calc_time + si1 * 900000));
-        if (si2-si1 > 1) str += ' to ' + format_date(new Date(calc_time + si2 * 900000));
+        var str = format_date(new Date(calc_time + si1 * graph_unit));
+        if (si2-si1 > 1) str += ' to ' + format_date(new Date(calc_time + si2 * graph_unit));
 
         // Populate item type summaries.
         str += '<div class="summary">';
@@ -731,7 +734,7 @@ window.wktimeln = {};
                 }
                 var slot = Math.round(x / graph_width_bar);
                 if (slot < 0) slot = 0;
-                if (slot > graph_hours*4) slot = graph_hours*4;
+                if (slot > (graph_hours*1000*60*60 / graph_unit)) slot = (graph_hours*1000*60*60 / graph_unit);
                 x = Math.floor(slot * graph_width_bar) + graph_width_left;
                 switch (graph_hilight_mode) {
 
@@ -879,7 +882,7 @@ window.wktimeln = {};
         // date is in the future, user must have done reviews on another
         // device.  Need to force refresh.
         var now = Math.floor(new Date()/1000);
-        if (first_draw === true && timeline[0] !== undefined && next_review >= Math.ceil(now/900)*900) {
+        if (first_draw === true && timeline[0] !== undefined && next_review >= Math.ceil(now/(graph_unit/1000))*(graph_unit/1000)) {
             first_draw = false;
             setTimeout(click_refresh, 50); // Refresh after finishing main()
             return;
@@ -916,6 +919,7 @@ window.wktimeln = {};
         // Draw vertical graph tics (# of Reviews).
         var tic, tic_class, y;
         graph_reviews = Math.ceil(max_reviews / inc_s) * inc_s;
+        console.log(max_reviews, inc_s, graph_reviews);
         for (tic = 0; tic <= graph_reviews; tic += inc_s) {
             tic_class = ((tic % inc_l) === 0 ? 'major' : 'minor');
             y = (graph_height_top + graph_height) - Math.round(graph_height * (tic / graph_reviews));
@@ -934,15 +938,15 @@ window.wktimeln = {};
         var minor_tic = minor_tic_choices[tic_choice];
 
         // Draw grid tics, and populate datapoints
-        var tic_ofs = Math.floor((calc_time - (new Date(calc_time)).setHours(0, 0, 0, 0)) / 900000);
-        graph_width_bar = (graph_width-1) / (graph_hours*4); // Width of a time slot.
-        for (tic = 0; tic <= graph_hours*4; tic++) {
+        var tic_ofs = Math.floor((calc_time - (new Date(calc_time)).setHours(0, 0, 0, 0)) / graph_unit);
+        graph_width_bar = (graph_width-1) / (graph_hours*1000*60*60 / graph_unit); // Width of a time slot.
+        for (tic = 0; tic <= (graph_hours*1000*60*60 / graph_unit); tic++) {
             var x = Math.floor(graph_width_left + tic * graph_width_bar);
 
             // Need to use date function to account for time shifts (e.g. Daylight Savings Time)
-            tstamp = new Date(calc_time + tic * 900000);
+            tstamp = new Date(calc_time + tic * graph_unit);
             var hh = tstamp.getHours();
-            var qh = hh*4 + Math.round(tstamp.getMinutes()/15);
+            var qh = hh*4 + Math.round(tstamp.getMinutes()/(graph_unit/(1000*60)));
 
             // Check if we are on a Major Tic mark
             if (qh % major_tic === 0) {
@@ -953,7 +957,7 @@ window.wktimeln = {};
                     label = 'SunMonTueWedThuFriSat'.substr(tstamp.getDay()*3, 3);
                 } else {
                     tic_class = 'major';
-                    tstamp = new Date(calc_time + tic * 900000);
+                    tstamp = new Date(calc_time + tic * graph_unit);
                     var hh = tstamp.getHours();
                     if (settings['24hour']) {
                         label = ('0'+hh+':00').slice(-5);
@@ -972,7 +976,7 @@ window.wktimeln = {};
 
             // If there are reviews for the current timeslot, draw graph bars.
             var slot = timeline[tic];
-            if (slot && tic < graph_hours*4) {
+            if (slot && tic < (graph_hours*1000*60*60 / graph_unit)) {
                 var x1 = x - graph_width_left;
                 var x2 = Math.floor((tic+1) * graph_width_bar);
                 var base = 0;
@@ -987,7 +991,7 @@ window.wktimeln = {};
                             srs_level_counts[srs_level] = (srs_level_counts[srs_level] || 0) + 1;
                         });
                     });
-                    console.dir(srs_level_counts);
+                    //console.dir(srs_level_counts);
                     Object.keys(srs_level_counts).forEach(function(srs_level) {
                         bars += '<rect class="level'+(parseInt(srs_level)+1)+'" x="'+x1+'" y="'+base+'" width="'+(x2-x1)+'" height="'+(srs_level_counts[srs_level])+'">';
                         var number = srs_numbers[srs_level];
@@ -1074,7 +1078,7 @@ window.wktimeln = {};
 
         // Schedule next timeline update, 1sec after next qtr hour.
         var next_time = (new Date()).getTime();
-        next_time = Math.ceil(next_time/900000)*900000 - next_time + 1000;
+        next_time = Math.ceil(next_time/graph_unit)*graph_unit - next_time + 1000;
         setTimeout(function() {
             draw_timeline();
         }, next_time);
@@ -1087,12 +1091,23 @@ window.wktimeln = {};
     // Generate timeline data.
     //-------------------------------------------------------------------
     function calc_timeline() {
+        graph_unit = graph_unit_minimum;
+        while(graph_hour*1000*60*60 / graph_unit > 4*18) {
+            console.log((graph_hours*1000*60*60) / graph_unit, 'vs', 4*18);
+            graph_unit *= 2;
+            // 15m, 30, 1h, 2h, 4h, 8h, 16h-->12h, 24h, 48h, ...
+            if (graph_unit == 1000*60*60*16) {
+                graph_unit = 1000*60*60*12;
+            }
+        }
+        console.log(graph_hours*1000*60*60 / graph_unit, 'vs', 4*18);
+        console.log(graph_unit/(1000*60), 'minute graph units');
         calc_time = new Date();
-        calc_time = calc_time.setMinutes(Math.floor(calc_time.getMinutes()/15)*15, 0, 0);
-        var next_time = Math.ceil(calc_time/900000); // Timestamp of next 15min slot
+        calc_time = calc_time.setMinutes(Math.floor(calc_time.getMinutes()/(graph_unit/(1000*60)))*(graph_unit/(1000*60)), 0, 0);
+        var next_time = Math.ceil(calc_time/graph_unit); // Timestamp of next 15min slot
         max_reviews = 3;
         graph_review_total = 0;
-        var max_slot = graph_hours*4;
+        var max_slot = (graph_hours*1000*60*60 / graph_unit);
         timeline = [];
         types = ['radicals', 'kanji', 'vocabulary'];
         var mark = {
@@ -1109,11 +1124,11 @@ window.wktimeln = {};
                 var item_user_specific_available_date = item.user_specific.available_date;
                 var item_user_specific_srs_numeric = item.user_specific.srs_numeric;
                 while(true) {
-                    var item_time = Math.floor(item_user_specific_available_date / 900); // Round down to 15min.
+                    var item_time = Math.floor(item_user_specific_available_date / (graph_unit/1000)); // Round down to 15min.
                     var slot_idx = Math.min(max_slot, Math.max(0, item_time - next_time));
                     //console.log(item.character, ' at level ', item_user_specific_srs_numeric, ' at time ', item_time, ' slot ', slot_idx);
                     if (timeline[slot_idx] === undefined)
-                        timeline[slot_idx] = {radicals:[], kanji:[], vocabulary:[], item_count:0, has_current:false, has_burn:false, item_time:item_time*900};
+                        timeline[slot_idx] = {radicals:[], kanji:[], vocabulary:[], item_count:0, has_current:false, has_burn:false, item_time:item_time*(graph_unit/1000)};
                     var slot = timeline[slot_idx];
                     slot.item_count++;
                     if (slot_idx < max_slot) {
