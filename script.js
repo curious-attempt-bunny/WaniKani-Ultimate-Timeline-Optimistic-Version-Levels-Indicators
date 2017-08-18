@@ -734,7 +734,7 @@ window.wktimeln = {};
                 }
                 var slot = Math.round(x / graph_width_bar);
                 if (slot < 0) slot = 0;
-                if (slot > (graph_hours*1000*60*60 / graph_unit)) slot = (graph_hours*1000*60*60 / graph_unit);
+                if (slot > ((graph_hours*1000*60*60) / graph_unit)) slot = ((graph_hours*1000*60*60) / graph_unit);
                 x = Math.floor(slot * graph_width_bar) + graph_width_left;
                 switch (graph_hilight_mode) {
 
@@ -867,6 +867,8 @@ window.wktimeln = {};
     // Draw the timeline.
     //-------------------------------------------------------------------
     function draw_timeline() {
+        console.log("A-!");
+
         // Need to 'restore' before redrawing.
         if (get_setting('minimized')) $('#timeln').removeClass('min');
 
@@ -877,6 +879,8 @@ window.wktimeln = {};
 
         // Update our timeline data based on cache.
         calc_timeline();
+        
+        console.log('A+!');
 
         // If cache says we have available items, but WK says next review
         // date is in the future, user must have done reviews on another
@@ -887,6 +891,8 @@ window.wktimeln = {};
             setTimeout(click_refresh, 50); // Refresh after finishing main()
             return;
         }
+
+        console.log("A!");
 
         // Update slider label with number of reviews on graph.
         $('#range_reviews').text(graph_review_total);
@@ -916,6 +922,8 @@ window.wktimeln = {};
             }
         }
 
+        console.log("B!");
+
         // Draw vertical graph tics (# of Reviews).
         var tic, tic_class, y;
         graph_reviews = Math.ceil(max_reviews / inc_s) * inc_s;
@@ -939,8 +947,8 @@ window.wktimeln = {};
 
         // Draw grid tics, and populate datapoints
         var tic_ofs = Math.floor((calc_time - (new Date(calc_time)).setHours(0, 0, 0, 0)) / graph_unit);
-        graph_width_bar = (graph_width-1) / (graph_hours*1000*60*60 / graph_unit); // Width of a time slot.
-        for (tic = 0; tic <= (graph_hours*1000*60*60 / graph_unit); tic++) {
+        graph_width_bar = (graph_width-1) / ((graph_hours*1000*60*60) / graph_unit); // Width of a time slot.
+        for (tic = 0; tic <= ((graph_hours*1000*60*60) / graph_unit); tic++) {
             var x = Math.floor(graph_width_left + tic * graph_width_bar);
 
             // Need to use date function to account for time shifts (e.g. Daylight Savings Time)
@@ -976,7 +984,7 @@ window.wktimeln = {};
 
             // If there are reviews for the current timeslot, draw graph bars.
             var slot = timeline[tic];
-            if (slot && tic < (graph_hours*1000*60*60 / graph_unit)) {
+            if (slot && tic < ((graph_hours*1000*60*60) / graph_unit)) {
                 var x1 = x - graph_width_left;
                 var x2 = Math.floor((tic+1) * graph_width_bar);
                 var base = 0;
@@ -1091,8 +1099,12 @@ window.wktimeln = {};
     // Generate timeline data.
     //-------------------------------------------------------------------
     function calc_timeline() {
+        console.log('calc_timeline');
+        console.log(graph_hours);
+        console.log(graph_unit_minimum);
         graph_unit = graph_unit_minimum;
-        while(graph_hour*1000*60*60 / graph_unit > 4*18) {
+        console.log(graph_hours);
+        while((graph_hours*1000*60*60) / graph_unit > 4*18) {
             console.log((graph_hours*1000*60*60) / graph_unit, 'vs', 4*18);
             graph_unit *= 2;
             // 15m, 30, 1h, 2h, 4h, 8h, 16h-->12h, 24h, 48h, ...
@@ -1100,14 +1112,14 @@ window.wktimeln = {};
                 graph_unit = 1000*60*60*12;
             }
         }
-        console.log(graph_hours*1000*60*60 / graph_unit, 'vs', 4*18);
+        console.log((graph_hours*1000*60*60) / graph_unit, 'vs', 4*18);
         console.log(graph_unit/(1000*60), 'minute graph units');
         calc_time = new Date();
         calc_time = calc_time.setMinutes(Math.floor(calc_time.getMinutes()/(graph_unit/(1000*60)))*(graph_unit/(1000*60)), 0, 0);
         var next_time = Math.ceil(calc_time/graph_unit); // Timestamp of next 15min slot
         max_reviews = 3;
         graph_review_total = 0;
-        var max_slot = (graph_hours*1000*60*60 / graph_unit);
+        var max_slot = ((graph_hours*1000*60*60) / graph_unit);
         timeline = [];
         types = ['radicals', 'kanji', 'vocabulary'];
         var mark = {
@@ -1383,6 +1395,7 @@ window.wktimeln = {};
         gobj.settings = settings;
         graph_hours = localStorage.getItem('timeln_graph_hours');
         if (!graph_hours) graph_hours = 36;
+        console.log('graph_hours', graph_hours);
 
         // Some DOM setup that we don't want to repeat if user forced refresh (i.e. 'warm boot').
         if (warmboot !== true) {
